@@ -1,0 +1,64 @@
+@page "/todo"
+@inject IJSRuntime JSRuntime
+@using Models;
+@using Logic;
+
+<h1>Todo</h1>
+<p>This component demonstrates JavaScript interoperability.</p>
+
+@if (todos != null)
+{
+    <ul>
+        @foreach (var todo in todos)
+        {
+            <li>
+                <input type="checkbox" @bind="@todo.IsDone" />
+                <input @bind="@todo.Title" />
+            </li>
+        }
+    </ul>
+}
+
+<input placeholder="Something todo" @bind="@newTodo" />
+<button @onclick="AddTodoAsync">Add Todo</button>
+<button @onclick="PersistAsync">Save</button>
+
+@code 
+{
+    private string todosKey = "todoList";
+    private IList<TodoItem> todos = new List<TodoItem>();
+    private string newTodo;
+
+    private LocalStorage _localStorage;
+
+    protected override void OnInitialized()
+    { 
+        _localStorage = new LocalStorage(JSRuntime);                
+    }
+
+    protected override async Task OnAfterRenderAsync()
+    {
+        var storedTodos = await _localStorage.GetItem<List<TodoItem>>(todosKey);
+        if (todos != null && storedTodos != null)
+        {
+            todos = storedTodos;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AddTodoAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(newTodo))
+        {
+            todos.Add(new TodoItem { Title = newTodo });
+            newTodo = string.Empty;
+
+            await PersistAsync();
+        }
+    } 
+
+    private async Task PersistAsync() 
+    {
+        await _localStorage.SetItem(todosKey, todos);
+    } 
+}
